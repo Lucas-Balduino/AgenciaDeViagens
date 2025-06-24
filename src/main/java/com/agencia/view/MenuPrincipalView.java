@@ -1,4 +1,4 @@
-package view;
+package com.agencia.view;
 
 import java.awt.EventQueue;
 
@@ -90,7 +90,8 @@ public class MenuPrincipalView extends JFrame {
 		JButton btnGerenciarSer = new JButton("Gerenciar Serviços");
 		btnGerenciarSer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("Botão Gerenciar Serviços clicado!");
+				GerenciarServicosView servicosView = new GerenciarServicosView();
+		        servicosView.setVisible(true);
 			}
 		});
 		btnGerenciarSer.setFont(new Font("Verdana", Font.BOLD, 14));

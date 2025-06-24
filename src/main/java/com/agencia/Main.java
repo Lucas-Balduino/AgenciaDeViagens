@@ -136,7 +136,6 @@ public class Main {
             case 3:
             	clearConsole();
                 if (acao.equalsIgnoreCase("Cadastrar")) {
-                    servicoService.cadastrarServico();
                 } else if (acao.equalsIgnoreCase("Listar")) {
                     servicoService.listarTodosServicos();
                 } else if (acao.equalsIgnoreCase("Buscar")) {

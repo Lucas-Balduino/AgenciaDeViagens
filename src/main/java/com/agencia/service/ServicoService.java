@@ -2,6 +2,8 @@ package com.agencia.service;
 
 import com.agencia.dao.ServicoDao;
 import com.agencia.model.Servico;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class ServicoService {
@@ -12,22 +14,35 @@ public class ServicoService {
         this.scanner = scanner;
     }
 
-    public void cadastrarServico() {
-        System.out.println("\n=== CADASTRAR SERVIÇO ===");
-        System.out.print("Nome: ");
-        String nome = scanner.nextLine();
-        System.out.print("Duração (horas): ");
-        int duracao = scanner.nextInt();
-        scanner.nextLine(); // Limpar buffer
-        System.out.print("Descrição: ");
-        String descricao = scanner.nextLine();
+    public void cadastrarServico(String nome, int duracao, String descricao) throws Exception {
+        // Validações básicas (replicando a lógica que estava implícita na versão de console)
+        if (nome == null || nome.trim().isEmpty()) {
+            throw new IllegalArgumentException("O nome do serviço não pode ser vazio.");
+        }
+        if (duracao <= 0) {
+            throw new IllegalArgumentException("A duração do serviço deve ser um número inteiro maior que zero.");
+        }
+        if (descricao == null || descricao.trim().isEmpty()) {
+            throw new IllegalArgumentException("A descrição do serviço não pode ser vazia.");
+        }
 
         try {
             Servico servico = new Servico(nome, duracao, descricao);
             servicoDao.inserir(servico);
-            System.out.println("✅ Serviço cadastrado!");
+            // Nenhuma mensagem de sucesso aqui; a UI que chamou fará isso.
         } catch (Exception e) {
-            System.err.println("❌ Erro ao cadastrar: " + e.getMessage());
+            // Re-lança a exceção para que a camada de UI possa tratá-la e exibir a mensagem adequada.
+            throw new Exception("Falha ao cadastrar serviço no banco de dados: " + e.getMessage(), e);
+        }
+    }
+    
+    public List<Servico> buscarTodosServicosGUI() {
+        try {
+            return servicoDao.buscarTodos();
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao buscar serviços para GUI: " + e.getMessage());
+            e.printStackTrace(); // Imprime o stack trace para depuração
+            return new ArrayList<>(); // Retorna lista vazia em caso de erro
         }
     }
     
