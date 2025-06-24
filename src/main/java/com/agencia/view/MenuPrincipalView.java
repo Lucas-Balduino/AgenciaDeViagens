@@ -1,5 +1,8 @@
 package com.agencia.view;
 
+import com.agencia.view.ClienteManagementFrame;
+
+
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -63,11 +66,16 @@ public class MenuPrincipalView extends JFrame {
 		panel.add(verticalStrut_1);
 		
 		JButton btnGerenciarCli = new JButton("Gerenciar Clientes");
-		btnGerenciarCli.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("Botão Gerenciar Clientes clicado!");
-			}
+//		btnGerenciarCli.addActionListener(new ActionListener() {
+//			public void actionPerformed(ActionEvent e) {
+//				System.out.println("Botão Gerenciar Clientes clicado!");
+//			}
+//		});
+		btnGerenciarCli.addActionListener(e -> {
+			ClienteManagementFrame frame = new ClienteManagementFrame();
+			frame.setVisible(true);
 		});
+
 		btnGerenciarCli.setAlignmentY(Component.TOP_ALIGNMENT);
 		btnGerenciarCli.setFont(new Font("Verdana", Font.BOLD, 14));
 		panel.add(btnGerenciarCli);
