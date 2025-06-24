@@ -57,7 +57,7 @@ public class ClienteDao {
                 DataBaseConnection.desconectar(conn);
         }
     }
-    
+
     public Nacional buscarNacionalPorCpf(String cpf) throws SQLException {
         String sql = "SELECT * FROM nacional WHERE cpf = ?";
         Connection conn = null;
@@ -84,7 +84,7 @@ public class ClienteDao {
                 DataBaseConnection.desconectar(conn);
         }
     }
-    
+
     public Estrangeiro buscarEstrangeiroPorPassaporte(String passaporte) throws SQLException {
         String sql = "SELECT * FROM estrangeiro WHERE passaporte = ?";
         Connection conn = null;
@@ -111,7 +111,65 @@ public class ClienteDao {
                 DataBaseConnection.desconectar(conn);
         }
     }
-    
+
+    /**
+     * Busca todos os clientes (nacionais e estrangeiros) cujo nome ou documento
+     * contenha o texto de filtro.
+     */
+    public List<Cliente> buscarTodosClientesPorNomeOuDocumento(String filtro) throws SQLException {
+        List<Cliente> lista = new ArrayList<>();
+        String like = "%" + filtro + "%";
+        Connection conn = null;
+        try {
+            conn = DataBaseConnection.getConnection();
+
+            // 1) Busca nacionais
+            String sqlN = "SELECT id, nome, telefone, email, cpf " +
+                    "FROM nacional " +
+                    "WHERE nome LIKE ? OR cpf LIKE ?";
+            PreparedStatement psN = conn.prepareStatement(sqlN);
+            psN.setString(1, like);
+            psN.setString(2, like);
+            try (ResultSet rs = psN.executeQuery()) {
+                while (rs.next()) {
+                    Nacional n = new Nacional();
+                    n.setId(rs.getLong("id"));
+                    n.setNome(rs.getString("nome"));
+                    n.setTelefone(rs.getString("telefone"));
+                    n.setEmail(rs.getString("email"));
+                    n.setCpf(rs.getString("cpf"));
+                    lista.add(n);
+                }
+            }
+
+            // 2) Busca estrangeiros
+            String sqlE = "SELECT id, nome, telefone, email, passaporte " +
+                    "FROM estrangeiro " +
+                    "WHERE nome LIKE ? OR passaporte LIKE ?";
+            PreparedStatement psE = conn.prepareStatement(sqlE);
+            psE.setString(1, like);
+            psE.setString(2, like);
+            try (ResultSet rs = psE.executeQuery()) {
+                while (rs.next()) {
+                    Estrangeiro e = new Estrangeiro();
+                    e.setId(rs.getLong("id"));
+                    e.setNome(rs.getString("nome"));
+                    e.setTelefone(rs.getString("telefone"));
+                    e.setEmail(rs.getString("email"));
+                    e.setPassaporte(rs.getString("passaporte"));
+                    lista.add(e);
+                }
+            }
+
+            return lista;
+        } finally {
+            if (conn != null) {
+                DataBaseConnection.desconectar(conn);
+            }
+        }
+    }
+
+
     public void listarTodosClientesSimples() throws SQLException {
         Connection conn = null;
 
@@ -147,35 +205,60 @@ public class ClienteDao {
                 DataBaseConnection.desconectar(conn);
         }
     }
-    
-    public void removerClientePorDocumento(String documento, String tipo) throws SQLException {
+
+//    public void removerClientePorDocumento(String documento, String tipo) throws SQLException {
+//        Connection conn = null;
+//
+//        try {
+//            conn = DataBaseConnection.getConnection();
+//
+//            String sql;
+//            if (tipo.equalsIgnoreCase("n")) {
+//                sql = "DELETE FROM nacional WHERE cpf = ?";
+//            } else if (tipo.equalsIgnoreCase("e")) {
+//                sql = "DELETE FROM estrangeiro WHERE passaporte = ?";
+//            } else {
+//                throw new IllegalArgumentException("Tipo de cliente inválido para remoção");
+//            }
+//
+//            PreparedStatement stmt = conn.prepareStatement(sql);
+//            stmt.setString(1, documento);
+//
+//            int linhasAfetadas = stmt.executeUpdate();
+//            if (linhasAfetadas > 0) {
+//                System.out.println("✅ Cliente removido com sucesso.");
+//            } else {
+//                System.out.println("❌ Cliente não encontrado.");
+//            }
+//
+//        } finally {
+//            if (conn != null)
+//                DataBaseConnection.desconectar(conn);
+//        }
+//    }
+    public boolean removerClientePorDocumento(String documento, String tipo) throws SQLException {
         Connection conn = null;
 
         try {
-            conn = DataBaseConnection.getConnection();
+           conn = DataBaseConnection.getConnection();
 
-            String sql;
+           String sql;
             if (tipo.equalsIgnoreCase("n")) {
                 sql = "DELETE FROM nacional WHERE cpf = ?";
             } else if (tipo.equalsIgnoreCase("e")) {
                 sql = "DELETE FROM estrangeiro WHERE passaporte = ?";
             } else {
-                throw new IllegalArgumentException("Tipo de cliente inválido para remoção");
+               throw new IllegalArgumentException("Tipo de cliente inválido para remoção");
             }
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, documento);
+           PreparedStatement stmt = conn.prepareStatement(sql);
+          stmt.setString(1, documento);
 
-            int linhasAfetadas = stmt.executeUpdate();
-            if (linhasAfetadas > 0) {
-                System.out.println("✅ Cliente removido com sucesso.");
-            } else {
-                System.out.println("❌ Cliente não encontrado.");
-            }
-
+           int linhasAfetadas = stmt.executeUpdate();
+           return linhasAfetadas > 0;
         } finally {
             if (conn != null)
-                DataBaseConnection.desconectar(conn);
+               DataBaseConnection.desconectar(conn);
         }
     }
 
@@ -210,8 +293,8 @@ public class ClienteDao {
     public List<Pacote> buscarPacotesContratadosNacional(Long nacionalId) throws SQLException {
         List<Pacote> pacotes = new ArrayList<>();
         String sql = "SELECT p.* FROM pacotes p " +
-                     "INNER JOIN nacional_pacotes np ON p.id = np.pacote_id " +
-                     "WHERE np.nacional_id = ?";
+                "INNER JOIN nacional_pacotes np ON p.id = np.pacote_id " +
+                "WHERE np.nacional_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -237,8 +320,8 @@ public class ClienteDao {
     public List<Pacote> buscarPacotesContratadosEstrangeiro(Long estrangeiroId) throws SQLException {
         List<Pacote> pacotes = new ArrayList<>();
         String sql = "SELECT p.* FROM pacotes p " +
-                     "INNER JOIN estrangeiro_pacotes ep ON p.id = ep.pacote_id " +
-                     "WHERE ep.estrangeiro_id = ?";
+                "INNER JOIN estrangeiro_pacotes ep ON p.id = ep.pacote_id " +
+                "WHERE ep.estrangeiro_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -264,8 +347,8 @@ public class ClienteDao {
     public List<Nacional> buscarNacionaisPorPacote(Long pacoteId) throws SQLException {
         List<Nacional> nacionais = new ArrayList<>();
         String sql = "SELECT n.* FROM nacional n " +
-                     "INNER JOIN nacional_pacotes np ON n.id = np.nacional_id " +
-                     "WHERE np.pacote_id = ?";
+                "INNER JOIN nacional_pacotes np ON n.id = np.nacional_id " +
+                "WHERE np.pacote_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -291,8 +374,8 @@ public class ClienteDao {
     public List<Estrangeiro> buscarEstrangeirosPorPacote(Long pacoteId) throws SQLException {
         List<Estrangeiro> estrangeiros = new ArrayList<>();
         String sql = "SELECT e.* FROM estrangeiro e " +
-                     "INNER JOIN estrangeiro_pacotes ep ON e.id = ep.estrangeiro_id " +
-                     "WHERE ep.pacote_id = ?";
+                "INNER JOIN estrangeiro_pacotes ep ON e.id = ep.estrangeiro_id " +
+                "WHERE ep.pacote_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -314,6 +397,41 @@ public class ClienteDao {
         }
         return estrangeiros;
     }
+    public boolean atualizar(Cliente cliente) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DataBaseConnection.getConnection();
+
+            String sql;
+            PreparedStatement stmt;
+
+            if (cliente instanceof Nacional) {
+                sql = "UPDATE nacional SET nome = ?, telefone = ?, email = ? WHERE cpf = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, cliente.getNome());
+                stmt.setString(2, cliente.getTelefone());
+                stmt.setString(3, cliente.getEmail());
+                stmt.setString(4, ((Nacional) cliente).getCpf());
+            } else if (cliente instanceof Estrangeiro) {
+                sql = "UPDATE estrangeiro SET nome = ?, telefone = ?, email = ? WHERE passaporte = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, cliente.getNome());
+                stmt.setString(2, cliente.getTelefone());
+                stmt.setString(3, cliente.getEmail());
+                stmt.setString(4, ((Estrangeiro) cliente).getPassaporte());
+            } else {
+                throw new IllegalArgumentException("Tipo de cliente desconhecido");
+            }
+
+            int linhasAfetadas = stmt.executeUpdate();
+            return linhasAfetadas > 0;
+
+        } finally {
+            if (conn != null)
+                DataBaseConnection.desconectar(conn);
+        }
+    }
+
 
 
 }

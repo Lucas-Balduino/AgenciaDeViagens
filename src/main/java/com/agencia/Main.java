@@ -90,7 +90,7 @@ public class Main {
                 } else if (acao.equalsIgnoreCase("Buscar")) {
                     clienteService.buscarCliente();
                 } else if (acao.equalsIgnoreCase("Listar")) {
-                    clienteService.listarTodosClientes();
+                    //clienteService.listarTodosClientes();
                 } else if (acao.equalsIgnoreCase("Remover")) {
                     clienteService.removerCliente();
                 } else {

@@ -15,6 +15,10 @@ public class ClienteService {
     private ClienteDao clienteDao = new ClienteDao();
     private Scanner scanner;
     
+    public ClienteService() {
+
+    }
+
     public ClienteService(Scanner scanner) {
         this.scanner = scanner;
     }
@@ -122,13 +126,13 @@ public class ClienteService {
     }
 
     
-    public void listarTodosClientes() {
-        try {
-            clienteDao.listarTodosClientesSimples();
-        } catch (Exception e) {
-            System.err.println("❌ Erro ao listar clientes: " + e.getMessage());
-        }
-    }
+//    public void listarTodosClientes() {
+//        try {
+//            clienteDao.listarTodosClientesSimples();
+//        } catch (Exception e) {
+//            System.err.println("❌ Erro ao listar clientes: " + e.getMessage());
+//        }
+//    }
     
     public void removerCliente() {
     	
