@@ -127,12 +127,31 @@ public class ClienteService {
         }
         try {
             if (isNacional) {
-                clienteDao.removerPacoteNacional(clienteId, pacoteId); // Chama o novo método do DAO
+                clienteDao.removerPacoteNacional(clienteId, pacoteId); 
             } else {
-                clienteDao.removerPacoteEstrangeiro(clienteId, pacoteId); // Chama o novo método do DAO
+                clienteDao.removerPacoteEstrangeiro(clienteId, pacoteId); 
             }
         } catch (Exception e) {
             throw new Exception("Falha ao remover pacote contratado: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Atualiza os dados de um cliente (nome, telefone, email).
+     * O documento (CPF/Passaporte) é usado como identificador e não é alterado.
+     *
+     * @param cliente O objeto Cliente com os dados atualizados.
+     * @return True se a atualização foi bem-sucedida, False caso contrário.
+     * @throws Exception Se ocorrer um erro durante a atualização no banco de dados.
+     */
+    public boolean atualizarClienteGUI(Cliente cliente) throws Exception {
+        if (cliente == null || cliente.getId() == null) {
+            throw new IllegalArgumentException("Cliente ou ID do cliente inválido para atualização.");
+        }
+        try {
+            return clienteDao.atualizar(cliente); // Chama o método atualizar do DAO
+        } catch (Exception e) {
+            throw new Exception("Erro ao atualizar cliente: " + e.getMessage(), e);
         }
     }
 

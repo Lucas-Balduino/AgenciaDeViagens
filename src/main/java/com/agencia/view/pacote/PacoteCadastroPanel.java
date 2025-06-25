@@ -15,18 +15,20 @@ import java.text.NumberFormat;
 import java.util.List;
 
 public class PacoteCadastroPanel extends JPanel {
+    private JTextField nomeField; 
     private JTextField destinoField;
     private JSpinner duracaoSpinner;
     private JFormattedTextField precoField;
     private JList<Servico> servicosList;
     private JButton salvarButton;
-    private JButton cancelarButton;
+    private JButton limparButton; // Renomeado de cancelar para limpar
 
     private PacoteDao pacoteDao;
     private ServicoDao servicoDao;
 
-    private boolean editMode = false;
-    private Long editId;
+    // Removendo variáveis de controle de edição
+    // private boolean editMode = false;
+    // private Long editId;
 
     public PacoteCadastroPanel() {
         pacoteDao = new PacoteDao();
@@ -37,22 +39,29 @@ public class PacoteCadastroPanel extends JPanel {
         gc.insets = new Insets(5,5,5,5);
         gc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Destino
+        // Campo Nome do Pacote
         gc.gridx=0; gc.gridy=0;
+        add(new JLabel("Nome do Pacote:"), gc);
+        nomeField = new JTextField(20);
+        gc.gridx=1; gc.gridy=0;
+        add(nomeField, gc);
+
+        // Destino
+        gc.gridx=0; gc.gridy=1;
         add(new JLabel("Destino:"), gc);
         destinoField = new JTextField(20);
-        gc.gridx=1;
+        gc.gridx=1; gc.gridy=1;
         add(destinoField, gc);
 
         // Duração
-        gc.gridx=0; gc.gridy=1;
+        gc.gridx=0; gc.gridy=2;
         add(new JLabel("Duração (dias):"), gc);
         duracaoSpinner = new JSpinner(new SpinnerNumberModel(1,1,365,1));
-        gc.gridx=1;
+        gc.gridx=1; gc.gridy=2;
         add(duracaoSpinner, gc);
 
         // Preço
-        gc.gridx=0; gc.gridy=2;
+        gc.gridx=0; gc.gridy=3;
         add(new JLabel("Preço:"), gc);
         NumberFormat nf = NumberFormat.getNumberInstance();
         NumberFormatter formatter = new NumberFormatter(nf);
@@ -61,11 +70,11 @@ public class PacoteCadastroPanel extends JPanel {
         formatter.setAllowsInvalid(false);
         precoField = new JFormattedTextField(new DefaultFormatterFactory(formatter));
         precoField.setColumns(10);
-        gc.gridx=1;
+        gc.gridx=1; gc.gridy=3;
         add(precoField, gc);
 
         // Serviços
-        gc.gridx=0; gc.gridy=3;
+        gc.gridx=0; gc.gridy=4;
         add(new JLabel("Serviços Incluídos:"), gc);
         DefaultListModel<Servico> lm = new DefaultListModel<>();
         try {
@@ -81,29 +90,35 @@ public class PacoteCadastroPanel extends JPanel {
         servicosList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane servScroll = new JScrollPane(servicosList);
         servScroll.setPreferredSize(new Dimension(200,100));
-        gc.gridx=1;
+        gc.gridx=1; gc.gridy=4;
         add(servScroll, gc);
 
         // Buttons
         salvarButton = new JButton("Salvar");
-        cancelarButton = new JButton("Cancelar");
+        limparButton = new JButton("Limpar"); 
         JPanel btnPanel = new JPanel();
         btnPanel.add(salvarButton);
-        btnPanel.add(cancelarButton);
-        gc.gridx=0; gc.gridy=4; gc.gridwidth=2;
+        btnPanel.add(limparButton);
+        gc.gridx=0; gc.gridy=5; gc.gridwidth=2;
         add(btnPanel, gc);
 
         // Actions
-        salvarButton.addActionListener((ActionEvent e) -> salvarOuAtualizar());
-        cancelarButton.addActionListener(e -> limparFormulario());
+        salvarButton.addActionListener((ActionEvent e) -> salvarPacote()); // Chamada alterada
+        limparButton.addActionListener(e -> limparFormulario());
     }
 
-    private void salvarOuAtualizar() {
+    // Renomeado e simplificado para apenas salvar novos pacotes
+    private void salvarPacote() { 
+        String nome = nomeField.getText().trim(); 
         String destino = destinoField.getText().trim();
         int duracao = (int) duracaoSpinner.getValue();
         Object p = precoField.getValue();
         List<Servico> selecionados = servicosList.getSelectedValuesList();
 
+        if(nome.isEmpty()) { 
+            JOptionPane.showMessageDialog(this, "O nome do pacote é obrigatório.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if(destino.isEmpty() || p==null) {
             JOptionPane.showMessageDialog(this, "Destino e preço são obrigatórios.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
             return;
@@ -116,63 +131,38 @@ public class PacoteCadastroPanel extends JPanel {
 
         try {
             Pacote pac = new Pacote();
+            pac.setNome(nome); 
             pac.setDestino(destino);
             pac.setDuracao(duracao);
             pac.setPreco(preco);
-            if(editMode) {
-                pac.setId(editId);
-                pacoteDao.atualizar(pac);
-                salvarButton.setText("Salvar");
-                editMode=false;
-            } else {
-                pacoteDao.inserir(pac);
-            }
-            // associar serviços: remove todos e adiciona
-            List<Servico> atuais = pacoteDao.buscarServicosDoPacote(pac.getId());
-            for(Servico s : atuais) {
-                pacoteDao.removerServicoDoPacote(pac.getId(), s.getId());
-            }
+            
+            // Sempre insere, pois este painel é só para cadastro
+            pacoteDao.inserir(pac);
+            
+            // Associar serviços ao NOVO pacote
             for(Servico s: selecionados) {
                 pacoteDao.adicionarServicoAoPacote(pac.getId(), s.getId());
             }
-            JOptionPane.showMessageDialog(this, "Pacote salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+
+            JOptionPane.showMessageDialog(this, "Pacote cadastrado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
             limparFormulario();
         } catch(Exception ex) {
-            JOptionPane.showMessageDialog(this, "Erro ao salvar pacote: "+ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erro ao cadastrar pacote: "+ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace(); 
         }
     }
 
     private void limparFormulario() {
+        nomeField.setText(""); 
         destinoField.setText("");
         duracaoSpinner.setValue(1);
         precoField.setValue(null);
         servicosList.clearSelection();
-        salvarButton.setText("Salvar");
-        editMode=false;
-        editId=null;
+        salvarButton.setText("Salvar"); // Sempre "Salvar" neste painel
+        // editMode=false; // Removido
+        // editId=null; // Removido
     }
 
-    /**
-     * Preenche o formulário para edição.
-     */
-    public void preencherParaEdicao(Pacote pac) {
-        destinoField.setText(pac.getDestino());
-        duracaoSpinner.setValue(pac.getDuracao());
-        precoField.setValue(pac.getPreco());
-        // selecionar serviços
-        DefaultListModel<Servico> lm = (DefaultListModel<Servico>) servicosList.getModel();
-        try {
-            List<Servico> ligados = pacoteDao.buscarServicosDoPacote(pac.getId());
-            int[] indices = new int[ligados.size()];
-            for (int i = 0; i < ligados.size(); i++) {
-                indices[i] = lm.indexOf(ligados.get(i));
-            }
-            servicosList.setSelectedIndices(indices);
-        } catch(SQLException e) {
-            JOptionPane.showMessageDialog(this, "Erro ao carregar serviços do pacote: "+e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-        }
-        editMode=true;
-        editId=pac.getId();
-        salvarButton.setText("Atualizar");
-    }
+    // Método de preenchimento para edição removido, pois esta classe não fará mais edição.
+    // public void preencherParaEdicao(Pacote pac) { ... }
 }

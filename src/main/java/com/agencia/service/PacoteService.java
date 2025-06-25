@@ -2,28 +2,26 @@ package com.agencia.service;
 
 import com.agencia.dao.PacoteDao;
 import com.agencia.model.Servico;
-import com.agencia.dao.ClienteDao; // ClienteDao pode ser necessário em alguns métodos aqui
+import com.agencia.dao.ClienteDao; 
 import com.agencia.dao.ServicoDao;
 import com.agencia.model.Pacote;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner; // Mantido para compatibilidade com a versão de console
-import java.util.stream.Collectors; // Para facilitar filtragem
+import java.util.Scanner; 
+import java.util.stream.Collectors; 
+import java.sql.SQLException; // Import necessário para SQLException
 
 public class PacoteService {
 	private PacoteDao pacoteDao = new PacoteDao();
 	private ServicoDao servicoDao = new ServicoDao();
-    private Scanner scanner; // A instância do scanner é usada apenas nos métodos de console
+    private Scanner scanner; 
 
-    // Construtor com scanner, mantido para a compatibilidade com a Main.java de console
     public PacoteService(Scanner scanner) {
         this.scanner = scanner;
     }
     
-    // Construtor sem scanner, para uso em GUIs
     public PacoteService() {
-        // Inicializa DAOs
     }
 
     /**
@@ -84,7 +82,6 @@ public class PacoteService {
             List<Servico> todosServicos = servicoDao.buscarTodos();
             List<Servico> servicosDoPacote = pacoteDao.buscarServicosDoPacote(pacoteId);
 
-            // Filtra os serviços que não estão no pacote
             return todosServicos.stream()
                     .filter(s -> servicosDoPacote.stream().noneMatch(sp -> sp.getId().equals(s.getId())))
                     .collect(Collectors.toList());
@@ -107,8 +104,6 @@ public class PacoteService {
             throw new IllegalArgumentException("IDs de pacote ou serviço inválidos.");
         }
         try {
-            // Opcional: Verifique se o serviço já está no pacote antes de tentar adicionar.
-            // Para simplicidade, vamos deixar o DAO/BD lidar com possíveis duplicações ou erros de chave.
             pacoteDao.adicionarServicoAoPacote(pacoteId, servicoId);
         } catch (Exception e) {
             throw new Exception("Falha ao adicionar serviço ao pacote: " + e.getMessage(), e);
@@ -132,6 +127,39 @@ public class PacoteService {
             throw new Exception("Falha ao remover serviço do pacote: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Atualiza os dados de um pacote existente (Nome, Destino, Duração, Preço).
+     *
+     * @param pacote O objeto Pacote com os dados atualizados, incluindo o ID.
+     * @throws Exception Se ocorrer um erro durante a atualização.
+     */
+    public void atualizarPacoteGUI(Pacote pacote) throws Exception {
+        if (pacote == null || pacote.getId() == null || pacote.getId() <= 0) {
+            throw new IllegalArgumentException("Pacote ou ID do pacote inválido para atualização.");
+        }
+        if (pacote.getNome() == null || pacote.getNome().trim().isEmpty()) {
+            throw new IllegalArgumentException("O nome do pacote não pode ser vazio.");
+        }
+        if (pacote.getDestino() == null || pacote.getDestino().trim().isEmpty()) {
+            throw new IllegalArgumentException("O destino do pacote não pode ser vazio.");
+        }
+        if (pacote.getDuracao() == null || pacote.getDuracao() <= 0) {
+            throw new IllegalArgumentException("A duração do pacote deve ser um número inteiro maior que zero.");
+        }
+        if (pacote.getPreco() == null || pacote.getPreco() <= 0) {
+            throw new IllegalArgumentException("O preço do pacote deve ser maior que zero.");
+        }
+
+        try {
+            pacoteDao.atualizar(pacote);
+        } catch (SQLException e) {
+            throw new Exception("Falha ao atualizar pacote no banco de dados: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new Exception("Erro ao atualizar pacote: " + e.getMessage(), e);
+        }
+    }
+
 
     // --- Métodos originais que usam Scanner (mantidos para compatibilidade com Main.java) ---
     public void cadastrarPacote() {
@@ -222,7 +250,6 @@ public class PacoteService {
             if (servicos.isEmpty()) {
                 System.out.println("Serviços inclusos: Nenhum.");
             } else {
-                System.out.println("Serviços inclusos:");
                 for (var servico : servicos) {
                     System.out.println("- " + servico.getNome() + " (" + servico.getDuracao() + " dias)");
                 }
@@ -260,7 +287,7 @@ public class PacoteService {
     }
 
 
-    public void contratarServicoParaPacote() { // Este método será refatorado internamente para usar os novos métodos GUI
+    public void contratarServicoParaPacote() { 
         try {
             System.out.println("\n=== CONTRATAR SERVIÇO PARA PACOTE ===");
 
@@ -331,7 +358,7 @@ public class PacoteService {
                 return;
             }
 
-            adicionarServicoAoPacoteGUI(pacoteId, servicoId); // Chama o novo método GUI
+            adicionarServicoAoPacoteGUI(pacoteId, servicoId); 
             System.out.println("✅ Serviço adicionado ao pacote com sucesso!");
 
         } catch (Exception e) {

@@ -5,6 +5,7 @@ import com.agencia.model.Pacote;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel; 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.sql.SQLException;
@@ -19,19 +20,22 @@ public class PacoteListagemPanel extends JPanel {
     private JButton excluirButton;
 
     private PacoteDao pacoteDao;
-    private PacoteCadastroPanel cadastroPanel;
-    private JTabbedPane tabbedPane;
+    // Removendo a referência direta a PacoteCadastroPanel e JTabbedPane,
+    // pois a edição agora será feita via diálogo.
+    // private PacoteCadastroPanel cadastroPanel; 
+    // private JTabbedPane tabbedPane;
 
-    public PacoteListagemPanel(PacoteCadastroPanel cadastroPanel, JTabbedPane tabbedPane) {
-        this.cadastroPanel = cadastroPanel;
-        this.tabbedPane = tabbedPane;
+    // Construtor ajustado para não receber PacoteCadastroPanel e JTabbedPane
+    public PacoteListagemPanel() { // Construtor simplificado
+        // Se este painel for usado dentro de um JTabbedPane no PacoteManagementFrame,
+        // o PacoteManagementFrame precisará ser ajustado para usar este construtor sem argumentos.
         pacoteDao = new PacoteDao();
 
         setLayout(new BorderLayout(10, 10));
 
         // Top: filtro
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        top.add(new JLabel("Buscar por destino:"));
+        top.add(new JLabel("Buscar por nome ou destino:")); 
         filtroField = new JTextField(20);
         buscarButton = new JButton("Pesquisar");
         top.add(filtroField);
@@ -39,7 +43,7 @@ public class PacoteListagemPanel extends JPanel {
         add(top, BorderLayout.NORTH);
 
         // Table
-        String[] colunas = {"ID", "Destino", "Duração", "Preço"};
+        String[] colunas = {"ID", "Nome do Pacote", "Destino", "Duração", "Preço"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -47,6 +51,9 @@ public class PacoteListagemPanel extends JPanel {
             }
         };
         tabela = new JTable(tableModel);
+        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabela.getTableHeader().setReorderingAllowed(false); 
+        
         add(new JScrollPane(tabela), BorderLayout.CENTER);
 
         // Bottom: buttons
@@ -60,9 +67,8 @@ public class PacoteListagemPanel extends JPanel {
         // Actions
         buscarButton.addActionListener((ActionEvent e) -> buscarPacotes());
         excluirButton.addActionListener((ActionEvent e) -> excluirPacoteSelecionado());
-        editarButton.addActionListener((ActionEvent e) -> editarPacoteSelecionado());
+        editarButton.addActionListener((ActionEvent e) -> editarPacoteSelecionado()); // Chama o novo fluxo de edição
 
-        // Load all
         buscarPacotes();
     }
 
@@ -70,19 +76,41 @@ public class PacoteListagemPanel extends JPanel {
         try {
             String filtro = filtroField.getText().trim();
             List<Pacote> lista = pacoteDao.buscarTodos();
+            
             if (!filtro.isEmpty()) {
-                lista.removeIf(p -> !p.getDestino().toLowerCase().contains(filtro.toLowerCase()));
+                lista.removeIf(p -> !(p.getNome().toLowerCase().contains(filtro.toLowerCase()) || 
+                                       p.getDestino().toLowerCase().contains(filtro.toLowerCase())));
             }
             tableModel.setRowCount(0);
-            for (Pacote p : lista) {
-                tableModel.addRow(new Object[]{
-                        p.getId(), p.getDestino(), p.getDuracao(), p.getPreco()
-                });
+
+            if (lista.isEmpty()) {
+                tableModel.addRow(new Object[]{"", "Nenhum pacote encontrado.", "", "", ""});
+            } else {
+                for (Pacote p : lista) {
+                    tableModel.addRow(new Object[]{
+                            p.getId(), 
+                            p.getNome(), 
+                            p.getDestino(), 
+                            p.getDuracao(), 
+                            p.getPreco()
+                    });
+                }
             }
+
+            // OCULTAR A COLUNA DE ID APÓS A POPULAÇÃO
+            TableColumnModel tcm = tabela.getColumnModel();
+            if (tcm.getColumnCount() > 0) { 
+                tcm.getColumn(0).setMinWidth(0);
+                tcm.getColumn(0).setMaxWidth(0);
+                tcm.getColumn(0).setWidth(0);
+                tcm.getColumn(0).setPreferredWidth(0); 
+            }
+
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this,
                     "Erro ao buscar pacotes: " + ex.getMessage(),
                     "Erro de Banco", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace(); 
         }
     }
 
@@ -92,18 +120,28 @@ public class PacoteListagemPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Selecione um pacote.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        Long id = (Long) tableModel.getValueAt(linha, 0);
+        Long id = (Long) tableModel.getValueAt(linha, 0); 
+        String nomePacote = (String) tableModel.getValueAt(linha, 1); 
+
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Deseja realmente excluir este pacote?", "Confirmar Exclusão", JOptionPane.YES_NO_OPTION);
+                "Deseja realmente excluir o pacote '" + nomePacote + "'?", "Confirmar Exclusão", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
         try {
+            if (pacoteDao.pacoteEstaContratado(id)) {
+                JOptionPane.showMessageDialog(this,
+                        "Este pacote está contratado por um ou mais clientes e não pode ser excluído.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             pacoteDao.deletar(id);
             buscarPacotes();
             JOptionPane.showMessageDialog(this, "Pacote excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this,
-                    "Não foi possível excluir. Verifique se há contratações associadas.",
+                    "Erro ao excluir. Detalhes: " + ex.getMessage(), 
                     "Erro", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 
@@ -113,17 +151,27 @@ public class PacoteListagemPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Selecione um pacote.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        Long id = (Long) tableModel.getValueAt(linha, 0);
+        Long id = (Long) tableModel.getValueAt(linha, 0); 
         try {
             Pacote p = pacoteDao.buscarPorId(id);
             if (p != null) {
-                cadastroPanel.preencherParaEdicao(p);
-                tabbedPane.setSelectedComponent(cadastroPanel);
+                // *** CHAMA O NOVO DIÁLOGO DE EDIÇÃO ***
+                EditarPacoteDialog dialog = new EditarPacoteDialog(SwingUtilities.getWindowAncestor(this), p);
+                dialog.setVisible(true);
+
+                // Após o diálogo ser fechado, se houve atualização, recarrega a lista
+                if (dialog.isUpdated()) {
+                    buscarPacotes(); 
+                }
+
+            } else {
+                 JOptionPane.showMessageDialog(this, "Pacote não encontrado para edição.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this,
-                    "Erro ao carregar pacote: " + ex.getMessage(),
+                    "Erro ao carregar pacote para edição: " + ex.getMessage(),
                     "Erro", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 }

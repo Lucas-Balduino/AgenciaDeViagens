@@ -1,4 +1,4 @@
-package com.agencia.view.cliente;
+package com.agencia.view.cliente; // Pacote correto
 
 import com.agencia.dao.ClienteDao;
 import com.agencia.model.Cliente;
@@ -7,6 +7,7 @@ import com.agencia.model.Nacional;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel; // Import adicionado
 import java.awt.*;
 import java.util.List;
 
@@ -20,15 +21,18 @@ public class ClienteListagemPanel extends JPanel {
 
     private ClienteDao clienteDao;
 
-    // Assumindo que este construtor é o que está sendo usado
+    // Construtor com os painéis de cadastro e o tabbedPane (se ainda forem necessários para o fluxo de edição de clientes)
+    // Se a edição agora for *apenas* via diálogo, estas referências podem não ser estritamente necessárias
+    // para este painel, mas as mantemos para compatibilidade com o ClienteManagementFrame.
+    private ClienteNacionalPanel nacionalPanel; 
+    private ClienteEstrangeiroPanel estrangeiroPanel;
+    private JTabbedPane tabbedPane;
+
     public ClienteListagemPanel(ClienteNacionalPanel nacionalPanel, ClienteEstrangeiroPanel estrangeiroPanel, JTabbedPane tabbedPane) {
-        // As referências a nacionalPanel, estrangeiroPanel e tabbedPane são passadas,
-        // mas não são usadas diretamente nesta classe para a correção atual.
-        // Elas são usadas em métodos como 'editarClienteSelecionado'.
-        // this.nacionalPanel = nacionalPanel; // Se estas linhas estiverem descomentadas, mantenha-as
-        // this.estrangeiroPanel = estrangeiroPanel; // Se estas linhas estiverem descomentadas, mantenha-as
-        // this.tabbedPane = tabbedPane; // Se estas linhas estiverem descomentadas, mantenha-as
-        this.clienteDao = new ClienteDao(); // Inicializa o ClienteDao
+        this.nacionalPanel = nacionalPanel; 
+        this.estrangeiroPanel = estrangeiroPanel;
+        this.tabbedPane = tabbedPane;
+        this.clienteDao = new ClienteDao(); 
 
         setLayout(new BorderLayout(10, 10));
 
@@ -40,6 +44,8 @@ public class ClienteListagemPanel extends JPanel {
         topPanel.add(buscarButton);
         add(topPanel, BorderLayout.NORTH);
 
+        // A coluna "ID" é a primeira, e será ocultada.
+        // O ID é mantido no modelo da tabela para uso interno (edição/exclusão).
         String[] colunas = {"ID", "Nome", "Tipo", "Documento", "E-mail", "Telefone"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override
@@ -49,6 +55,10 @@ public class ClienteListagemPanel extends JPanel {
         };
 
         tabela = new JTable(tableModel);
+        tabela.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Permite selecionar apenas uma linha
+        // Define que a tabela não pode reordenar colunas
+        tabela.getTableHeader().setReorderingAllowed(false); 
+
         add(new JScrollPane(tabela), BorderLayout.CENTER);
 
         excluirButton = new JButton("Excluir");
@@ -63,18 +73,15 @@ public class ClienteListagemPanel extends JPanel {
         excluirButton.addActionListener(e -> excluirClienteSelecionado());
         editarButton.addActionListener(e -> editarClienteSelecionado());
 
-        // Carrega os clientes ao iniciar o painel
         buscarClientes(); 
     }
 
     public void buscarClientes() {
         try {
             String filtro = filtroField.getText().trim();
-            // *** LINHA CORRIGIDA AQUI ***
-            List<Cliente> lista = clienteDao.buscarTodosClientes(filtro); // O método foi renomeado no ClienteDao
-            tableModel.setRowCount(0); // Limpa as linhas existentes antes de adicionar novas
+            List<Cliente> lista = clienteDao.buscarTodosClientes(filtro); 
+            tableModel.setRowCount(0); 
             
-            // Adiciona a lógica para exibir mensagem se a lista estiver vazia
             if (lista.isEmpty()) {
                 tableModel.addRow(new Object[]{"", "Nenhum cliente encontrado.", "", "", "", ""});
                 return;
@@ -82,7 +89,7 @@ public class ClienteListagemPanel extends JPanel {
 
             for (Cliente c : lista) {
                 String tipo = (c instanceof Nacional) ? "Nacional" : "Estrangeiro";
-                String doc = ""; // Inicializa doc
+                String doc = ""; 
                 if (c instanceof Nacional) {
                     doc = ((Nacional) c).getCpf();
                 } else if (c instanceof Estrangeiro) {
@@ -90,7 +97,7 @@ public class ClienteListagemPanel extends JPanel {
                 }
                 
                 tableModel.addRow(new Object[]{
-                        c.getId(),
+                        c.getId(), // ID é adicionado no modelo
                         c.getNome(),
                         tipo,
                         doc,
@@ -98,12 +105,21 @@ public class ClienteListagemPanel extends JPanel {
                         c.getTelefone()
                 });
             }
+
+            // *** OCULTAR A COLUNA DE ID APÓS A POPULAÇÃO ***
+            TableColumnModel tcm = tabela.getColumnModel();
+            if (tcm.getColumnCount() > 0) {
+                tcm.getColumn(0).setMinWidth(0);
+                tcm.getColumn(0).setMaxWidth(0);
+                tcm.getColumn(0).setWidth(0);
+            }
+
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                     "Erro ao buscar clientes: " + ex.getMessage(),
                     "Erro",
                     JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace(); // Imprime o stack trace para depuração
+            ex.printStackTrace(); 
         }
     }
 
@@ -117,25 +133,28 @@ public class ClienteListagemPanel extends JPanel {
             return;
         }
 
-        String tipo = (String) tableModel.getValueAt(linha, 2);
-        String doc = (String) tableModel.getValueAt(linha, 3);
+        // Pega o ID da linha selecionada (coluna 0, mesmo que esteja oculta)
+        Long idCliente = (Long) tableModel.getValueAt(linha, 0); 
+        String nomeCliente = (String) tableModel.getValueAt(linha, 1); // Nome para a confirmação
+        String tipoCliente = (String) tableModel.getValueAt(linha, 2);
+        String docCliente = (String) tableModel.getValueAt(linha, 3);
+
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Deseja realmente excluir este cliente?",
+                "Deseja realmente excluir o cliente '" + nomeCliente + "'?",
                 "Confirmar Exclusão",
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                String tipoSigla = tipo.equals("Nacional") ? "n" : "e";
-                // Este método em ClienteDao.java retorna boolean agora
-                boolean sucesso = clienteDao.removerClientePorDocumento(doc, tipoSigla); 
+                String tipoSigla = tipoCliente.equals("Nacional") ? "n" : "e";
+                boolean sucesso = clienteDao.removerClientePorDocumento(docCliente, tipoSigla); 
                 if (sucesso) {
                     JOptionPane.showMessageDialog(this,
                             "Cliente excluído com sucesso!",
                             "Sucesso",
                             JOptionPane.INFORMATION_MESSAGE);
-                    buscarClientes(); // Atualiza a lista após a exclusão
+                    buscarClientes(); 
                 } else {
                     JOptionPane.showMessageDialog(this,
                             "Cliente não encontrado ou não pôde ser excluído.",
@@ -147,7 +166,7 @@ public class ClienteListagemPanel extends JPanel {
                         "Erro ao excluir cliente: " + ex.getMessage(),
                         "Erro",
                         JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace(); // Imprime o stack trace
+                ex.printStackTrace(); 
             }
         }
     }
@@ -162,37 +181,32 @@ public class ClienteListagemPanel extends JPanel {
             return;
         }
 
-        // Recupera os dados da linha selecionada
-        // Long id = (Long) tableModel.getValueAt(linha, 0); // O ID não é estritamente necessário se buscar por documento
-        String tipo = (String) tableModel.getValueAt(linha, 2);
-        String doc = (String) tableModel.getValueAt(linha, 3); // Documento (CPF/Passaporte)
+        Long idCliente = (Long) tableModel.getValueAt(linha, 0); // Pega o ID da coluna 0 (mesmo que esteja oculta)
+        String tipoClienteStr = (String) tableModel.getValueAt(linha, 2);
+        String docCliente = (String) tableModel.getValueAt(linha, 3); 
+        boolean isNacional = tipoClienteStr.equals("Nacional");
 
         try {
-            // Assumindo que você tem acesso aos painéis de cadastro via construtor,
-            // ou que ClienteManagementFrame terá métodos para fazer essa transição.
-            // O código original ClienteManagementFrame já passa os painéis.
-            if (tipo.equals("Nacional")) {
-                Nacional nacional = clienteDao.buscarNacionalPorCpf(doc);
-                if (nacional != null) {
-                    // Chame o método preencherParaEdicao no seu ClienteNacionalPanel
-                    // Ex: nacionalPanel.preencherParaEdicao(nacional);
-                    // E mude a aba no tabbedPane
-                    // Ex: tabbedPane.setSelectedComponent(nacionalPanel);
-                    JOptionPane.showMessageDialog(this, "Funcionalidade de edição para cliente Nacional (CPF: " + doc + ") seria carregada.", "Edição Mock", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                     JOptionPane.showMessageDialog(this, "Cliente Nacional não encontrado para edição.", "Erro", JOptionPane.ERROR_MESSAGE);
+            // Busca o objeto Cliente completo para passar para o diálogo de edição
+            Cliente clienteParaEditar = null;
+            if (isNacional) {
+                clienteParaEditar = clienteDao.buscarNacionalPorCpf(docCliente);
+            } else {
+                clienteParaEditar = clienteDao.buscarEstrangeiroPorPassaporte(docCliente);
+            }
+
+            if (clienteParaEditar != null) {
+                // *** CHAMA O NOVO DIÁLOGO DE EDIÇÃO ***
+                EditarClienteDialog dialog = new EditarClienteDialog(SwingUtilities.getWindowAncestor(this), clienteParaEditar);
+                dialog.setVisible(true);
+
+                // Após o diálogo ser fechado, se houve atualização, recarrega a lista
+                if (dialog.isUpdated()) {
+                    buscarClientes(); 
                 }
-            } else if (tipo.equals("Estrangeiro")) {
-                Estrangeiro estrangeiro = clienteDao.buscarEstrangeiroPorPassaporte(doc);
-                if (estrangeiro != null) {
-                    // Chame o método preencherParaEdicao no seu ClienteEstrangeiroPanel
-                    // Ex: estrangeiroPanel.preencherParaEdicao(estrangeiro);
-                    // E mude a aba no tabbedPane
-                    // Ex: tabbedPane.setSelectedComponent(estrangeiroPanel);
-                    JOptionPane.showMessageDialog(this, "Funcionalidade de edição para cliente Estrangeiro (Passaporte: " + doc + ") seria carregada.", "Edição Mock", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Cliente Estrangeiro não encontrado para edição.", "Erro", JOptionPane.ERROR_MESSAGE);
-                }
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Cliente não encontrado para edição.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,

@@ -1,59 +1,49 @@
 package com.agencia.view;
 
-import com.agencia.view.pacote.*;
+import com.agencia.view.pacote.PacoteCadastroPanel;
+import com.agencia.view.pacote.PacoteListagemPanel;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 
 public class PacoteManagementFrame extends JFrame {
+
+    private static final long serialVersionUID = 1L;
     private PacoteCadastroPanel cadastroPanel;
-    private PacoteListagemPanel listagemPanel;
-    private JTabbedPane tabs;
-    private boolean errorOnInit;
+    private PacoteListagemPanel listagemPanel; 
 
     public PacoteManagementFrame() {
         super("Gerenciamento de Pacotes");
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout());
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setSize(1000, 700); 
+        setLocationRelativeTo(null);
 
-        tabs = new JTabbedPane();
-        errorOnInit = false;
-        JPanel errorPanel;
+        JTabbedPane tabbedPane = new JTabbedPane();
 
-        // Cadastro Tab
-        try {
-            cadastroPanel = new PacoteCadastroPanel();
-            tabs.addTab("Cadastro de Pacote", cadastroPanel);
-        } catch (Exception ex) {
-            errorOnInit = true;
-            errorPanel = new JPanel(new BorderLayout());
-            errorPanel.add(new JLabel("Erro ao carregar formulário de cadastro: " + ex.getMessage(), SwingConstants.CENTER), BorderLayout.CENTER);
-            tabs.addTab("Cadastro de Pacote", errorPanel);
-        }
+        // Cria os painéis de conteúdo para cada aba
+        cadastroPanel = new PacoteCadastroPanel();
+        
+        // *** LINHA CORRIGIDA AQUI: Chamar o construtor sem argumentos ***
+        listagemPanel = new PacoteListagemPanel(); 
 
-        // Listagem Tab
-        try {
-            listagemPanel = new PacoteListagemPanel(cadastroPanel, tabs);
-            tabs.addTab("Listagem de Pacotes", listagemPanel);
-        } catch (Exception ex) {
-            errorOnInit = true;
-            errorPanel = new JPanel(new BorderLayout());
-            errorPanel.add(new JLabel("Erro ao carregar listagem de pacotes: " + ex.getMessage(), SwingConstants.CENTER), BorderLayout.CENTER);
-            tabs.addTab("Listagem de Pacotes", errorPanel);
-        }
+        // Adiciona os painéis como abas
+        tabbedPane.addTab("Cadastro de Pacote", cadastroPanel);
+        tabbedPane.addTab("Listagem de Pacotes", listagemPanel);
 
-        // Atualiza listagem ao trocar de aba
-        tabs.addChangeListener(e -> {
-            if (!errorOnInit && listagemPanel != null && tabs.getSelectedComponent() == listagemPanel) {
-                listagemPanel.buscarPacotes();
+        // Adiciona um listener para atualizar a listagem quando a aba de listagem é selecionada
+        tabbedPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if (tabbedPane.getSelectedComponent() == listagemPanel) {
+                    listagemPanel.buscarPacotes(); // Recarrega os pacotes ao exibir a aba
+                }
             }
         });
 
-        add(tabs, BorderLayout.CENTER);
-
-        pack();
-        setMinimumSize(new Dimension(800, 600));
-        setLocationRelativeTo(null);
+        getContentPane().setLayout(new BorderLayout());
+        getContentPane().add(tabbedPane, BorderLayout.CENTER);
     }
 
     public static void main(String[] args) {
