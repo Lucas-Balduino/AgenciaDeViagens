@@ -1,4 +1,4 @@
-package com.agencia.view;
+package com.agencia.view.cliente;
 
 import com.agencia.dao.*;
 import com.agencia.model.Nacional;

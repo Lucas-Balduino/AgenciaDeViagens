@@ -86,8 +86,8 @@ public class MenuPrincipalView extends JFrame {
         JButton btnGerenciarPac = new JButton("Gerenciar Pacotes");
         btnGerenciarPac.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Botão Gerenciar Pacotes clicado!");
-                // Adicionar lógica para PacoteManagementFrame aqui
+                PacoteManagementFrame frame = new PacoteManagementFrame();
+                frame.setVisible(true);
             }
         });
         btnGerenciarPac.setFont(new Font("Verdana", Font.BOLD, 14));

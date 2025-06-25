@@ -1,5 +1,7 @@
 package com.agencia.view;
 
+import com.agencia.view.cliente.*;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
