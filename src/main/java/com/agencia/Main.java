@@ -137,7 +137,6 @@ public class Main {
             	clearConsole();
                 if (acao.equalsIgnoreCase("Cadastrar")) {
                 } else if (acao.equalsIgnoreCase("Listar")) {
-                    servicoService.listarTodosServicos();
                 } else if (acao.equalsIgnoreCase("Buscar")) {
                     servicoService.buscarServicoPorId();
                 } else if (acao.equalsIgnoreCase("Remover")) {

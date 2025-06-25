@@ -1,7 +1,9 @@
 package com.agencia.view;
 
+// Importa ClienteManagementFrame (já existente)
 import com.agencia.view.ClienteManagementFrame;
-
+// Importa ServicoManagementFrame (necessário para a nova ligação)
+import com.agencia.view.ServicoManagementFrame; 
 
 import java.awt.EventQueue;
 
@@ -10,7 +12,7 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.BoxLayout;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.awt.GridLayout; // Mantido, se o WindowBuilder inseriu
 import javax.swing.JLabel;
 import java.awt.Font;
 import javax.swing.SwingConstants;
@@ -66,11 +68,6 @@ public class MenuPrincipalView extends JFrame {
 		panel.add(verticalStrut_1);
 		
 		JButton btnGerenciarCli = new JButton("Gerenciar Clientes");
-//		btnGerenciarCli.addActionListener(new ActionListener() {
-//			public void actionPerformed(ActionEvent e) {
-//				System.out.println("Botão Gerenciar Clientes clicado!");
-//			}
-//		});
 		btnGerenciarCli.addActionListener(e -> {
 			ClienteManagementFrame frame = new ClienteManagementFrame();
 			frame.setVisible(true);
@@ -87,6 +84,7 @@ public class MenuPrincipalView extends JFrame {
 		btnGerenciarPac.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println("Botão Gerenciar Pacotes clicado!");
+				// Lógica para abrir o PacoteManagementFrame virá aqui
 			}
 		});
 		btnGerenciarPac.setFont(new Font("Verdana", Font.BOLD, 14));
@@ -96,10 +94,11 @@ public class MenuPrincipalView extends JFrame {
 		panel.add(verticalStrut_2);
 		
 		JButton btnGerenciarSer = new JButton("Gerenciar Serviços");
+		// *** ALTERAÇÃO AQUI: Chamar ServicoManagementFrame diretamente ***
 		btnGerenciarSer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				GerenciarServicosView servicosView = new GerenciarServicosView();
-		        servicosView.setVisible(true);
+				ServicoManagementFrame servicoFrame = new ServicoManagementFrame();
+		        servicoFrame.setVisible(true);
 			}
 		});
 		btnGerenciarSer.setFont(new Font("Verdana", Font.BOLD, 14));
@@ -112,6 +111,7 @@ public class MenuPrincipalView extends JFrame {
 		btnContratar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println("Botão Contratar clicado!");
+				// Lógica para abrir a tela de Contratação virá aqui
 			}
 		});
 		btnContratar.setFont(new Font("Verdana", Font.BOLD, 14));
