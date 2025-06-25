@@ -116,14 +116,14 @@ public class ClienteDao {
      * Busca todos os clientes (nacionais e estrangeiros) cujo nome ou documento
      * contenha o texto de filtro.
      */
-    public List<Cliente> buscarTodosClientesPorNomeOuDocumento(String filtro) throws SQLException {
+    public List<Cliente> buscarTodosClientes(String filtro) throws SQLException { // Nome do método ajustado para ser mais geral
         List<Cliente> lista = new ArrayList<>();
-        String like = "%" + filtro + "%";
+        String like = "%" + filtro + "%"; // Usa o filtro diretamente, sem converter para lowercase aqui
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
 
-            // 1) Busca nacionais
+            // 1) Busca nacionais (filtrando por nome e CPF)
             String sqlN = "SELECT id, nome, telefone, email, cpf " +
                     "FROM nacional " +
                     "WHERE nome LIKE ? OR cpf LIKE ?";
@@ -142,7 +142,7 @@ public class ClienteDao {
                 }
             }
 
-            // 2) Busca estrangeiros
+            // 2) Busca estrangeiros (filtrando por nome e passaporte)
             String sqlE = "SELECT id, nome, telefone, email, passaporte " +
                     "FROM estrangeiro " +
                     "WHERE nome LIKE ? OR passaporte LIKE ?";
@@ -206,36 +206,6 @@ public class ClienteDao {
         }
     }
 
-//    public void removerClientePorDocumento(String documento, String tipo) throws SQLException {
-//        Connection conn = null;
-//
-//        try {
-//            conn = DataBaseConnection.getConnection();
-//
-//            String sql;
-//            if (tipo.equalsIgnoreCase("n")) {
-//                sql = "DELETE FROM nacional WHERE cpf = ?";
-//            } else if (tipo.equalsIgnoreCase("e")) {
-//                sql = "DELETE FROM estrangeiro WHERE passaporte = ?";
-//            } else {
-//                throw new IllegalArgumentException("Tipo de cliente inválido para remoção");
-//            }
-//
-//            PreparedStatement stmt = conn.prepareStatement(sql);
-//            stmt.setString(1, documento);
-//
-//            int linhasAfetadas = stmt.executeUpdate();
-//            if (linhasAfetadas > 0) {
-//                System.out.println("✅ Cliente removido com sucesso.");
-//            } else {
-//                System.out.println("❌ Cliente não encontrado.");
-//            }
-//
-//        } finally {
-//            if (conn != null)
-//                DataBaseConnection.desconectar(conn);
-//        }
-//    }
     public boolean removerClientePorDocumento(String documento, String tipo) throws SQLException {
         Connection conn = null;
 
@@ -281,6 +251,36 @@ public class ClienteDao {
         try {
             conn = DataBaseConnection.getConnection();
             String sql = "INSERT INTO estrangeiro_pacotes (estrangeiro_id, pacote_id) VALUES (?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setLong(1, estrangeiroId);
+            stmt.setLong(2, pacoteId);
+            stmt.executeUpdate();
+        } finally {
+            DataBaseConnection.desconectar(conn);
+        }
+    }
+
+    // Novo método para remover pacote de cliente nacional
+    public void removerPacoteNacional(Long nacionalId, Long pacoteId) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DataBaseConnection.getConnection();
+            String sql = "DELETE FROM nacional_pacotes WHERE nacional_id = ? AND pacote_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setLong(1, nacionalId);
+            stmt.setLong(2, pacoteId);
+            stmt.executeUpdate();
+        } finally {
+            DataBaseConnection.desconectar(conn);
+        }
+    }
+
+    // Novo método para remover pacote de cliente estrangeiro
+    public void removerPacoteEstrangeiro(Long estrangeiroId, Long pacoteId) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DataBaseConnection.getConnection();
+            String sql = "DELETE FROM estrangeiro_pacotes WHERE estrangeiro_id = ? AND pacote_id = ?";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setLong(1, estrangeiroId);
             stmt.setLong(2, pacoteId);
@@ -347,8 +347,8 @@ public class ClienteDao {
     public List<Nacional> buscarNacionaisPorPacote(Long pacoteId) throws SQLException {
         List<Nacional> nacionais = new ArrayList<>();
         String sql = "SELECT n.* FROM nacional n " +
-                "INNER JOIN nacional_pacotes np ON n.id = np.nacional_id " +
-                "WHERE np.pacote_id = ?";
+                     "INNER JOIN nacional_pacotes np ON n.id = np.nacional_id " +
+                     "WHERE np.pacote_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -374,8 +374,8 @@ public class ClienteDao {
     public List<Estrangeiro> buscarEstrangeirosPorPacote(Long pacoteId) throws SQLException {
         List<Estrangeiro> estrangeiros = new ArrayList<>();
         String sql = "SELECT e.* FROM estrangeiro e " +
-                "INNER JOIN estrangeiro_pacotes ep ON e.id = ep.estrangeiro_id " +
-                "WHERE ep.pacote_id = ?";
+                     "INNER JOIN estrangeiro_pacotes ep ON e.id = ep.estrangeiro_id " +
+                     "WHERE ep.pacote_id = ?";
         Connection conn = null;
         try {
             conn = DataBaseConnection.getConnection();
@@ -431,7 +431,4 @@ public class ClienteDao {
                 DataBaseConnection.desconectar(conn);
         }
     }
-
-
-
 }

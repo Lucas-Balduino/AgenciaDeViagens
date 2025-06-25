@@ -2,23 +2,138 @@ package com.agencia.service;
 
 import com.agencia.dao.PacoteDao;
 import com.agencia.model.Servico;
-import com.agencia.dao.ClienteDao;
+import com.agencia.dao.ClienteDao; // ClienteDao pode ser necessário em alguns métodos aqui
 import com.agencia.dao.ServicoDao;
 import com.agencia.model.Pacote;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Scanner; // Mantido para compatibilidade com a versão de console
+import java.util.stream.Collectors; // Para facilitar filtragem
 
 public class PacoteService {
 	private PacoteDao pacoteDao = new PacoteDao();
 	private ServicoDao servicoDao = new ServicoDao();
-    private Scanner scanner;
+    private Scanner scanner; // A instância do scanner é usada apenas nos métodos de console
 
+    // Construtor com scanner, mantido para a compatibilidade com a Main.java de console
     public PacoteService(Scanner scanner) {
         this.scanner = scanner;
     }
+    
+    // Construtor sem scanner, para uso em GUIs
+    public PacoteService() {
+        // Inicializa DAOs
+    }
 
+    /**
+     * Retorna uma lista de todos os pacotes. Ideal para uso em GUI.
+     *
+     * @return Lista de objetos Pacote.
+     */
+    public List<Pacote> buscarTodosPacotesGUI() {
+        try {
+            return pacoteDao.buscarTodos();
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao buscar todos os pacotes para GUI: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Retorna um pacote específico pelo ID. Ideal para uso em GUI.
+     *
+     * @param id O ID do pacote.
+     * @return O objeto Pacote, ou null se não encontrado ou ocorrer erro.
+     */
+    public Pacote buscarPacotePorIdGUI(Long id) {
+        try {
+            return pacoteDao.buscarPorId(id);
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao buscar pacote por ID para GUI: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Retorna a lista de serviços associados a um pacote específico. Ideal para uso em GUI.
+     *
+     * @param pacoteId O ID do pacote.
+     * @return Lista de objetos Servico associados ao pacote.
+     */
+    public List<Servico> buscarServicosDoPacoteGUI(Long pacoteId) {
+        try {
+            return pacoteDao.buscarServicosDoPacote(pacoteId);
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao buscar serviços do pacote para GUI: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Retorna a lista de serviços NÃO associados a um pacote específico. Ideal para uso em GUI.
+     *
+     * @param pacoteId O ID do pacote.
+     * @return Lista de objetos Servico não associados ao pacote.
+     */
+    public List<Servico> buscarServicosNaoAssociadosAoPacoteGUI(Long pacoteId) {
+        try {
+            List<Servico> todosServicos = servicoDao.buscarTodos();
+            List<Servico> servicosDoPacote = pacoteDao.buscarServicosDoPacote(pacoteId);
+
+            // Filtra os serviços que não estão no pacote
+            return todosServicos.stream()
+                    .filter(s -> servicosDoPacote.stream().noneMatch(sp -> sp.getId().equals(s.getId())))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao buscar serviços não associados ao pacote para GUI: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Adiciona um serviço a um pacote. Ideal para uso em GUI.
+     *
+     * @param pacoteId O ID do pacote.
+     * @param servicoId O ID do serviço a ser adicionado.
+     * @throws Exception Se ocorrer um erro ou o serviço já estiver no pacote.
+     */
+    public void adicionarServicoAoPacoteGUI(Long pacoteId, Long servicoId) throws Exception {
+        if (pacoteId == null || pacoteId <= 0 || servicoId == null || servicoId <= 0) {
+            throw new IllegalArgumentException("IDs de pacote ou serviço inválidos.");
+        }
+        try {
+            // Opcional: Verifique se o serviço já está no pacote antes de tentar adicionar.
+            // Para simplicidade, vamos deixar o DAO/BD lidar com possíveis duplicações ou erros de chave.
+            pacoteDao.adicionarServicoAoPacote(pacoteId, servicoId);
+        } catch (Exception e) {
+            throw new Exception("Falha ao adicionar serviço ao pacote: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Remove um serviço de um pacote. Ideal para uso em GUI.
+     *
+     * @param pacoteId O ID do pacote.
+     * @param servicoId O ID do serviço a ser removido.
+     * @throws Exception Se ocorrer um erro.
+     */
+    public void removerServicoDoPacoteGUI(Long pacoteId, Long servicoId) throws Exception {
+        if (pacoteId == null || pacoteId <= 0 || servicoId == null || servicoId <= 0) {
+            throw new IllegalArgumentException("IDs de pacote ou serviço inválidos.");
+        }
+        try {
+            pacoteDao.removerServicoDoPacote(pacoteId, servicoId);
+        } catch (Exception e) {
+            throw new Exception("Falha ao remover serviço do pacote: " + e.getMessage(), e);
+        }
+    }
+
+    // --- Métodos originais que usam Scanner (mantidos para compatibilidade com Main.java) ---
     public void cadastrarPacote() {
         System.out.println("\n=== CADASTRAR PACOTE ===");
 
@@ -28,7 +143,6 @@ public class PacoteService {
         System.out.print("Destino: ");
         String destino = scanner.nextLine();
 
-        // Validação destino
         if (destino == null || destino.trim().isEmpty()) {
             System.out.println("❌ Destino não pode ser vazio. Cadastro cancelado.");
             return;
@@ -39,9 +153,8 @@ public class PacoteService {
 
         System.out.print("Preço: ");
         double preco = scanner.nextDouble();
-        scanner.nextLine(); // Limpar buffer
+        scanner.nextLine();
 
-        // Validação preço
         if (preco <= 0) {
             System.out.println("❌ Preço deve ser maior que 0. Cadastro cancelado.");
             return;
@@ -56,10 +169,8 @@ public class PacoteService {
         }
     }
 
-    
     public void listarTodosPacotesComServicos() {
         try {
-            // Buscar todos os pacotes
             var pacotes = pacoteDao.buscarTodos();
 
             if (pacotes.isEmpty()) {
@@ -71,7 +182,6 @@ public class PacoteService {
                 System.out.println("\n[" + pacote.getId() + "] " + pacote.getNome() + " - " + pacote.getDestino());
                 System.out.println("Serviços contratados:");
 
-                // Buscar os serviços de cada pacote
                 var servicos = pacoteDao.buscarServicosDoPacote(pacote.getId());
 
                 if (servicos.isEmpty()) {
@@ -91,7 +201,7 @@ public class PacoteService {
     public void buscarPacotePorId() {
         System.out.print("Digite o ID do pacote: ");
         Long id = scanner.nextLong();
-        scanner.nextLine(); // limpar buffer
+        scanner.nextLine();
 
         try {
             Pacote pacote = pacoteDao.buscarPorId(id);
@@ -126,7 +236,7 @@ public class PacoteService {
     public void deletarPacote() {
         System.out.print("Digite o ID do pacote para deletar: ");
         Long id = scanner.nextLong();
-        scanner.nextLine(); // limpar buffer
+        scanner.nextLine();
 
         try {
             Pacote pacote = pacoteDao.buscarPorId(id);
@@ -136,7 +246,6 @@ public class PacoteService {
                 return;
             }
 
-            // Verificar se está contratado
             if (pacoteDao.pacoteEstaContratado(id)) {
                 System.out.println("❌ Este pacote está contratado por um ou mais clientes. Não pode ser deletado.");
                 return;
@@ -151,11 +260,10 @@ public class PacoteService {
     }
 
 
-    public void contratarServicoParaPacote() {
+    public void contratarServicoParaPacote() { // Este método será refatorado internamente para usar os novos métodos GUI
         try {
             System.out.println("\n=== CONTRATAR SERVIÇO PARA PACOTE ===");
 
-            // 1. Mostrar todos os pacotes
             var pacotes = pacoteDao.buscarTodos();
 
             if (pacotes.isEmpty()) {
@@ -168,10 +276,9 @@ public class PacoteService {
                 System.out.println("[" + pacote.getId() + "] " + pacote.getNome() + " - " + pacote.getDestino());
             }
 
-            // 2. Escolher o pacote
             System.out.print("\nDigite o ID do pacote: ");
             Long pacoteId = scanner.nextLong();
-            scanner.nextLine(); // limpar buffer
+            scanner.nextLine();
 
             var pacoteSelecionado = pacoteDao.buscarPorId(pacoteId);
 
@@ -180,7 +287,6 @@ public class PacoteService {
                 return;
             }
 
-            // 3. Mostrar apenas serviços ainda não contratados
             var servicosDoPacote = pacoteDao.buscarServicosDoPacote(pacoteId);
             var todosServicos = servicoDao.buscarTodos();
 
@@ -208,12 +314,10 @@ public class PacoteService {
                 System.out.println("[" + servico.getId() + "] " + servico.getNome() + " (" + servico.getDuracao() + " dias)");
             }
 
-            // 4. Escolher o serviço
             System.out.print("\nDigite o ID do serviço que deseja adicionar: ");
             Long servicoId = scanner.nextLong();
-            scanner.nextLine(); // limpar buffer
+            scanner.nextLine();
 
-            // Verifica se o serviço escolhido realmente está disponível
             boolean valido = false;
             for (var servico : servicosDisponiveis) {
                 if (servico.getId().equals(servicoId)) {
@@ -227,9 +331,7 @@ public class PacoteService {
                 return;
             }
 
-            // 5. Adicionar o serviço
-            pacoteDao.adicionarServicoAoPacote(pacoteId, servicoId);
-
+            adicionarServicoAoPacoteGUI(pacoteId, servicoId); // Chama o novo método GUI
             System.out.println("✅ Serviço adicionado ao pacote com sucesso!");
 
         } catch (Exception e) {
@@ -242,7 +344,7 @@ public class PacoteService {
             System.out.println("\n=== LISTAR CLIENTES POR PACOTE ===");
             System.out.print("Digite o ID do pacote: ");
             Long pacoteId = scanner.nextLong();
-            scanner.nextLine(); // limpar buffer
+            scanner.nextLine();
 
             Pacote pacote = pacoteDao.buscarPorId(pacoteId);
 
@@ -281,7 +383,7 @@ public class PacoteService {
         }
     }
     
-    public List<Pacote> buscarTodosPacotes() {
+    public List<Pacote> buscarTodosPacotes() { // Este método já existe e é usado pelo ClienteService
         try {
             return pacoteDao.buscarTodos();
         } catch (Exception e) {
@@ -289,6 +391,4 @@ public class PacoteService {
             return new ArrayList<>();
         }
     }
-
-    
 }
